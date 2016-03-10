@@ -42,9 +42,13 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   def json_walk(result, user_json, prop)
     path = SiteSetting.send("oauth2_json_#{prop}_path")
     if path.present?
-      segments = path.split('.')
-      val = walk_path(user_json, segments)
-      result[prop] = val if val.present?
+      if path == "default"
+	result[prop] = ["default"]
+      else
+        segments = path.split('.')
+        val = walk_path(user_json, segments)
+        result[prop] = val if val.present?
+      end
     end
   end
 
@@ -58,10 +62,24 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
       json_walk(result, user_json, :username)
       json_walk(result, user_json, :name)
       json_walk(result, user_json, :email)
+      json_walk(result, user_json, :groups)
     end
 
     result
   end
+
+  def update_user_groups(user, groups)
+    grouplist = groups
+    Rails.logger.info "After create account " + grouplist.join(",")
+    grouplist.each do |c|
+       grp = Group.where(name: c).first
+       if not grp.nil?
+         grp.group_users.create(user_id: user.id, group_id: grp.id)
+         # Rails.logger.info "adding user to " + grp.name
+       end
+    end
+  end
+
 
   def after_authenticate(auth)
     result = Auth::Result.new
@@ -79,13 +97,17 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
     elsif SiteSetting.oauth2_email_verified?
       result.user = User.where(email: Email.downcase(result.email)).first
     end
-
+    
     result.extra_data = { oauth2_basic_user_id: user_details[:user_id] }
+    update_user_groups(result.user, user_details[:groups])
     result
   end
 
   def after_create_account(user, auth)
     ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{auth[:extra_data][:oauth2_basic_user_id]}", {user_id: user.id })
+    token = auth['credentials']['token']
+    user_details = fetch_user_details(token)
+    update_user_groups(user, user_details[:groups]) 
   end
 end
 
