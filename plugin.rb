@@ -70,12 +70,22 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
 
   def update_user_groups(user, groups)
     grouplist = groups
-    Rails.logger.info "After create account " + grouplist.join(",")
+    # Get the groups this user is authenticated with from sso
+    Group.joins(:users).where(users: { id: user.id } ).each do |c|
+      gname = c.name
+      # dont try to add it later again
+      if grouplist.include?(gname)
+        grouplist.delete(gname) # remove it from the list
+      #delete the user from the list since sso says he isn't in there anymore!
+      else
+        c.group_users.where(user_id: user.id).destroy_all
+      end
+    end
+    # add users to group
     grouplist.each do |c|
        grp = Group.where(name: c).first
        if not grp.nil?
          grp.group_users.create(user_id: user.id, group_id: grp.id)
-         # Rails.logger.info "adding user to " + grp.name
        end
     end
   end
@@ -112,7 +122,6 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
     update_user_groups(user, user_details[:groups]) 
   end
 end
-
 auth_provider title_setting: "oauth2_button_title",
               enabled_setting: "oauth2_enabled",
               authenticator: OAuth2BasicAuthenticator.new('oauth2_basic'),
