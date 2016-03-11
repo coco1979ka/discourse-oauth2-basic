@@ -11,7 +11,7 @@ login:
   oauth2_json_username_path: ''
   oauth2_json_name_path: ''
   oauth2_json_email_path: ''
-  oauth2_json_groups_path: 'default'
+  oauth2_json_groups_path: ''
   oauth2_email_verified: false
   oauth2_send_auth_header: true
   oauth2_button_title:
