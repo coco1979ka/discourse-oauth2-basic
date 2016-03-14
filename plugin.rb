@@ -4,10 +4,12 @@
 # authors: Robin Ward
 
 require_dependency 'auth/oauth2_authenticator.rb'
+require 'logger'
 
 enabled_site_setting :oauth2_enabled
 
 class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
+
   def register_middleware(omniauth)
     omniauth.provider :oauth2,
                       name: 'oauth2_basic',
@@ -49,6 +51,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   end
 
   def fetch_user_details(token)
+    Rails.logger.debug("Fetching user details for token:"+token)
     user_json_url = SiteSetting.oauth2_user_json_url.sub(':token', token)
     user_json = JSON.parse(open(user_json_url, 'Authorization' => "Bearer #{token}" ).read)
 
@@ -65,6 +68,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   end
 
   def update_user_groups(user, groups)
+    Rails.logger.debug("Called update users with user: "+user.to_s+" and groups "+groups.join(","))
     groupMatchStr = SiteSetting.oauth2_group_matching
     groupArr = groupMatchStr.split(",")
     nameAttr = SiteSetting.oauth2_json_groups_nameattr
@@ -74,12 +78,14 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
       org = orgAndMatch[0]
       match = orgAndMatch[1]
       groups.each do |c|
-	extGroup = c[nameAttr.to_sym]
+	extGroup = c[nameAttr]
         if extGroup == org
           grouplist << match
 	end
       end
     end
+    
+    Rails.logger.debug("Grouplist:"+grouplist.join(","))
     # Get the groups this user is authenticated with from sso
     Group.joins(:users).where(users: { id: user.id } ).each do |c|
       gname = c.name
@@ -126,6 +132,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   end
 
   def after_create_account(user, auth)
+    Rails.logger.debug("Called after create account for user "+user.to_s+" and auth: "+auth.to_s)
     ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{auth[:extra_data][:oauth2_basic_user_id]}", {user_id: user.id })
     token = auth['credentials']['token']
     user_details = fetch_user_details(token)
