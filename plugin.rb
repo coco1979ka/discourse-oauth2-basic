@@ -42,13 +42,9 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   def json_walk(result, user_json, prop)
     path = SiteSetting.send("oauth2_json_#{prop}_path")
     if path.present?
-      if path == "default"
-	result[prop] = ["default"]
-      else
         segments = path.split('.')
         val = walk_path(user_json, segments)
         result[prop] = val if val.present?
-      end
     end
   end
 
@@ -69,7 +65,21 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   end
 
   def update_user_groups(user, groups)
-    grouplist = groups
+    groupMatchStr = SiteSetting.oauth2_group_matching
+    groupArr = groupMatchStr.split(",")
+    nameAttr = SiteSetting.oauth2_json_groups_nameattr
+    grouplist = []
+    groupArr.each do |g|
+      orgAndMatch = g.split("=")
+      org = orgAndMatch[0]
+      match = orgAndMatch[1]
+      groups.each do |c|
+	extGroup = c[nameAttr.to_sym]
+        if extGroup == org
+          grouplist << match
+	end
+      end
+    end
     # Get the groups this user is authenticated with from sso
     Group.joins(:users).where(users: { id: user.id } ).each do |c|
       gname = c.name
