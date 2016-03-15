@@ -108,6 +108,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
 
 
   def after_authenticate(auth)
+    Rails.logger.debug("After authenticate, could add extra data maybe?")
     result = Auth::Result.new
     token = auth['credentials']['token']
     user_details = fetch_user_details(token)
@@ -124,7 +125,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
       result.user = User.where(email: Email.downcase(result.email)).first
     end
     
-    result.extra_data = { oauth2_basic_user_id: user_details[:user_id] }
+    result.extra_data = { oauth2_basic_user_id: user_details[:user_id], groups: user_details[:groups] }
     if not result.user.nil?
       update_user_groups(result.user, user_details[:groups])
     end
@@ -134,6 +135,8 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   def after_create_account(user, auth)
     Rails.logger.debug("Called after create account for user "+user.to_s+" and auth: "+auth.to_s)
     ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{auth[:extra_data][:oauth2_basic_user_id]}", {user_id: user.id })
+    groups = auth[:extra_data][:groups]
+    update_user_groups(user, groups)
   end
 end
 auth_provider title_setting: "oauth2_button_title",
