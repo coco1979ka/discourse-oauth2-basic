@@ -126,7 +126,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
     end
     
     result.extra_data = { oauth2_basic_user_id: user_details[:user_id], groups: user_details[:groups] }
-    if not result.user.nil?
+    if not result.user.nil? and not user_details[:groups].nil?
       update_user_groups(result.user, user_details[:groups])
     end
     result
