@@ -78,7 +78,11 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
       org = orgAndMatch[0]
       match = orgAndMatch[1]
       groups.each do |c|
-	extGroup = c[nameAttr]
+	if not nameAttr.to_s.empty?
+	  extGroup = c[nameAttr]
+	elsif
+	  extGroup = c
+	end 
         if extGroup == org
           grouplist << match
 	end

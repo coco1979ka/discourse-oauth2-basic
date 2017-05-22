@@ -11,7 +11,7 @@ en:
     oauth2_json_name_path: "Path in the OAuth2 User JSON to the user's full: user.name.full"
     oauth2_json_email_path: "Path in the OAuth2 User JSON to the user's email: user.email.primary"
     oauth2_json_groups_path: "Path in the OAuth2 User JSON to the user's groups: user.authorities"
-    oauth2_json_groups_nameattr: 'Attribute to identify the group name inside of the users groups: authority for user.authorities.authority'
+    oauth2_json_groups_nameattr: 'Attribute to identify the group name inside of the users groups: authority for user.authorities.authority . If empty, assumes the groups are values of the array.'
     oauth2_group_matching: "Comma seperated key=value pairs that identify the groups that should be assigned."
     oauth2_email_verified: "Check this if the OAuth2 site has verified the email"
     oauth2_send_auth_header: "Send the token as an HTTP Authorization header"
